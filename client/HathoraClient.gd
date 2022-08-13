@@ -15,9 +15,6 @@ var http_request_connect
 var _wsclient=null
 var websocket_url
 
-#var  token
-#var  roomID
-
 func _ready():
 	pass	
 
@@ -25,6 +22,7 @@ func _process(_delta):
 	if _wsclient!=null:
 		_wsclient.poll()
 
+#called from main to initialie http connection
 func init(config):
 	appID = config.app_ID
 	coordinator = config.coordinator
@@ -37,8 +35,8 @@ func init(config):
 	parent_Node.add_child(http_request_create)
 	http_request_login.connect("request_completed", parent_Node, loginResponse)
 	http_request_create.connect("request_completed", parent_Node, createResponse)
-	
 
+#send http request for anonymous login
 func login_Anonymous():
 	#do HTTP request here
 	var body= to_json({})
@@ -48,19 +46,16 @@ func login_Anonymous():
 		push_error("An error occurred in the HTTP request.")
 		print('error')
 	
-	
+#send http request for creating new game
 func create(token, data):
 	buffer=data
 	var body= to_json({})
-	
 	var error = http_request_create.request("https://"+ coordinator + "/" + appID +"/create",["Authorization:"+token, "Content-Type: application/octet-stream"],false, HTTPClient.METHOD_POST, body)
 	if error != OK:
 		push_error("An error occurred in the HTTP request.")
 		print('error')
 
-	#do HTTP request here
-		
-	
+#set up Socket connection to the socket server
 func client_connect(config):
 		
 	var token = config.token
@@ -80,6 +75,7 @@ func client_connect(config):
 	if err != OK:
 		print("Unable to connect socket")
 
+#general send data command
 func sendData(data=null):
 	var msgDict = {
 		"type": 0,
@@ -89,7 +85,8 @@ func sendData(data=null):
 	buffer=[]
 	buffer.append_array(connectionString.to_utf8())
 	_wsclient.get_peer(1).put_packet(buffer)
-	
+
+#authenticates client to the Hathora coordinator
 func sendAuthpackets(token, roomID):
 	print('sending token and roomid')
 	var myDict = {"token": token, "stateId": roomID}
