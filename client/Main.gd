@@ -1,7 +1,7 @@
 extends Control
 
-var token
-var RoomID
+var myToken
+var myRoomID
 var data = PoolByteArray()
 
 var clientConfig={
@@ -21,55 +21,49 @@ func _on_Button_pressed():
 	$Hathora.login_Anonymous()
 
 #Signal Callback passed during Hathora Init call
-func _Login_Response_login(_result, _response_code, _headers, body):
-	var response = parse_json(body.get_string_from_utf8())
-	token = response.token
-	if token != "":
-		$LoginResponse.text = "Token Received: " + token
-		# Will print the user agent string used by the HTTPRequest node (as recognized by httpbin.org).
-		print("token: " + response.token)
+func _Login_Response_login(token):
+	
+	if token.size() >0:
+		myToken = token[0]
+		$LoginResponse.text = "Token Received: " + token[0]
 
 #Create Game button pressed
 func _on_Create_pressed():
-	$Hathora.create(token, data)
+	$Hathora.create(myToken, data)
 
 #Signal Callback that was passed during Hathora Init Call
-func _Create_Response_login(_result, _response_code, _headers, body):
-	var response = parse_json(body.get_string_from_utf8())
-	RoomID = response.stateId
-	if RoomID != null:
-		$CreateResponse.text = "Room ID Received: " + RoomID
+func _Create_Response_login(roomID):
+	if roomID.size() > 0:
+		myRoomID = roomID[0]
+		$CreateResponse.text = "Room ID: " + roomID[0]
+
 
 #Connect to game button pressed
 func _on_Connect_pressed():
 	
 	#setting up client connection for sockets
 	var connectconfig={
-		"stateId": RoomID,
-		"token": token,
-		"onData": data,
+		"stateId": myRoomID,
+		"token": myToken,
 		"onClose": "_on_Socket_Closed",
 		"onError": "_on_Socket_Closed",
 		"onConnect": "_on_Socket_Connection",
 		"onMessage": "_on_Socket_Data",
-		"requestComplete":"_on_Connection_received",
 	}
 	$Hathora.client_connect(connectconfig)
 
 #when socket connects, this callback was passed in connectConfig
 #this also sends the authentication bytes as well
-func _on_Socket_Connection(proto = ""):
-	print("socket connected  ", proto)
+func _on_Socket_Connection():
 	$ConnectResponse.text="socket connected"
-	$Hathora.sendAuthpackets(token, RoomID)
 
 #when socket closes, this callback was passed in connectConfig
 func _on_Socket_Closed(was_clean=false):
 	print("closed: ", was_clean)
 
 #when socket data is received, this callback was passed in connectConfig
-func _on_Socket_Data(client):
-	$DataBuffer.text = $DataBuffer.text + client.get_peer(1).get_packet().get_string_from_utf8() + "\n"
+func _on_Socket_Data(response):
+	$DataBuffer.text = $DataBuffer.text + response[0] + "\n"
 	var b = $DataBuffer.get_line_count()
 	$DataBuffer.cursor_set_line(b)
 
